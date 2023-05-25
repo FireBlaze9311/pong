@@ -1,0 +1,13 @@
+html, body{
+    overflow-x: hidden;
+}
+
+body{
+    background-color: black;
+    position: relative;
+}
+
+canvas{
+    background-color: black;
+    border: 5px solid white;
+}
