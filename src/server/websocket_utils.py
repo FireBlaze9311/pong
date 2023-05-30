@@ -41,7 +41,7 @@ async def sendGameInitialization(game: Game, clients: List[WebSocketServerProtoc
                 'margin': game.left_block.margin,
                 'posY': game.left_block.posY
             },
-            'rightBar': {
+            'rightBlock': {
                 'height': game.right_block.height,
                 'width': game.right_block.width,
                 'margin': game.right_block.margin,
