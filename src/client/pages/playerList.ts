@@ -3,7 +3,7 @@ import Game from "./game";
 import load from "../navigation";
 import { IEvent, Page } from "../types";
 
-export default class PlayerList implements Page {
+export default class PlayerListPage implements Page {
     ws: WebSocketGameController
     playerList: HTMLDivElement
 
