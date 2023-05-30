@@ -107,6 +107,7 @@ class Ball:
         # left bar collision
         elif (self.pos[0] <= self.game.left_block.margin + self.game.left_block.width
               and self.pos[0] >= self.game.left_block.margin
+              and self.pos[1] + self.game.ball.size >= self.game.left_block.posY
               and self.pos[1] <= self.game.left_block.posY + self.game.left_block.height):
             mid = self.game.left_block.posY + self.game.left_block.height / 2
             newDir = np.array(
