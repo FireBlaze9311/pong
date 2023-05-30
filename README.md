@@ -1,2 +1,2 @@
 # pong
-pong web implementation
+Pong multiplayer web implementation
