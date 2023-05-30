@@ -1,5 +1,5 @@
-import IEvent from "./IEvent";
 import EventHandler from "./eventHandler";
+import { IEvent } from "./types";
 
 export default class WebSocketGameController{
     private ws: WebSocket | null
