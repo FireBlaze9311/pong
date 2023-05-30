@@ -1,5 +1,4 @@
-import IEvent from "../IEvent";
-import Page from "../page";
+import { IEvent, Page } from "../types";
 import load from "../navigation";
 import PlayerList from "./playerList";
 import WebSocketGameController from "../webSocketGameController";

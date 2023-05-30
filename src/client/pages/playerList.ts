@@ -1,6 +1,7 @@
-import Page from "../page";
-import IEvent from "../IEvent";
 import WebSocketGameController from "../webSocketGameController";
+import Game from "./game";
+import load from "../navigation";
+import { IEvent, Page } from "../types";
 
 export default class PlayerList implements Page {
     ws: WebSocketGameController
@@ -10,6 +11,7 @@ export default class PlayerList implements Page {
         this.ws = ws
         this.ws.register('playerList', this.onPlayerListReceived.bind(this))
         this.ws.register('invitation', this.onInvited.bind(this))
+        this.ws.register('invitationAccepted', this.onInvitationAccepted.bind(this))
     }
 
     onPlayerListReceived(e: IEvent): void {
@@ -34,6 +36,7 @@ export default class PlayerList implements Page {
                 message: player 
             }
             this.ws.send(event)
+            this.loadGame()
         }
         else{
             // send rejection 
@@ -46,7 +49,11 @@ export default class PlayerList implements Page {
     }
 
     onInvitationAccepted(e: IEvent): void {
+        this.loadGame()
+    }
 
+    loadGame(): void {
+        load(new Game(this.ws))
     }
 
     render(): string {
