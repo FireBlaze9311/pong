@@ -61,6 +61,7 @@ async def sendInvitation(targetPlayer: str, srcPlayer: str):
     if ws is not None:
         await ws.send(json.dumps({'type': 'invitation', 'message': srcPlayer}))
 
+
 async def sendInvitationAccepted(srcPlayer: str):
     '''
     Sends an invitation confirmation.
@@ -140,7 +141,7 @@ async def matchmaking(srcPlayer: str, websocket: WebSocketServerProtocol):
                     del invitations[targetPlayer]
                     await sendInvitationAccepted(targetPlayer)
                     # start game
-                    # await play(srcPlayer, targetPlayer)
+                    await play(srcPlayer, targetPlayer)
 
             elif type == 'rejectInvitation':
                 if invitations.get(message) is not None:
