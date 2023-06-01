@@ -1,17 +1,16 @@
 from typing import List, Tuple, Dict, Any
 from game import Game
-from websockets.sync.server import ServerConnection
+from websockets.server import WebSocketServerProtocol
 import json
 
-def broadcastEvent(event: Dict[str, Any], clients: List[ServerConnection]):
+async def broadcastEvent(event: Dict[str, Any], clients: List[WebSocketServerProtocol]):
     '''
     Broadcasts an event to all given clients.
     '''
     for client in clients:
-        client.send(json.dumps(event))
+        await client.send(json.dumps(event))
 
-
-def sendScore(score1: int, score2: int, clients: List[ServerConnection]):
+async def sendScore(score1: int, score2: int, clients: List[WebSocketServerProtocol]):
     '''
     Sends score to clients.
     '''
@@ -19,10 +18,10 @@ def sendScore(score1: int, score2: int, clients: List[ServerConnection]):
         'type': 'score', 
         'data': (score1, score2)
     }
-    broadcastEvent(event, clients)
+    await broadcastEvent(event, clients)
 
 
-def sendGameInitialization(game: Game, clients: List[ServerConnection]):
+async def sendGameInitialization(game: Game, clients: List[WebSocketServerProtocol]):
     '''
     Sends game initialization data to clients.
     '''
@@ -49,9 +48,9 @@ def sendGameInitialization(game: Game, clients: List[ServerConnection]):
             }
         }
     }
-    broadcastEvent(initEvent, clients)
+    await broadcastEvent(initEvent, clients)
 
-def sendBallPos(pos: Tuple[float, float], clients: List[ServerConnection]):
+async def sendBallPos(pos: Tuple[float, float], clients: List[WebSocketServerProtocol]):
     '''
     Sends the ball position to all clients.
     '''
@@ -59,9 +58,9 @@ def sendBallPos(pos: Tuple[float, float], clients: List[ServerConnection]):
         'type': 'ballPos',
         'data': pos
     }
-    broadcastEvent(event, clients)
+    await broadcastEvent(event, clients)
 
-def sendLeftBlockPos(posY: int, clients: List[ServerConnection]):
+async def sendLeftBlockPos(posY: int, clients: List[WebSocketServerProtocol]):
     '''
     Sends left block position to all clients.
     '''
@@ -69,9 +68,9 @@ def sendLeftBlockPos(posY: int, clients: List[ServerConnection]):
         'type': 'leftBlockPos',
         'data': posY
     }
-    broadcastEvent(event, clients)
+    await broadcastEvent(event, clients)
 
-def sendRightBlockPos(posY: int, clients: List[ServerConnection]):
+async def sendRightBlockPos(posY: int, clients: List[WebSocketServerProtocol]):
     '''
     Sends right block position to all clients.
     '''
@@ -79,4 +78,4 @@ def sendRightBlockPos(posY: int, clients: List[ServerConnection]):
         'type': 'rightBlockPos',
         'data': posY
     }
-    broadcastEvent(event, clients)
+    await broadcastEvent(event, clients)

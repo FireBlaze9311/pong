@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Any, Tuple
+from typing import Callable, Any, Tuple, Awaitable
 
 
 class Game:
@@ -7,19 +7,19 @@ class Game:
                  width: int = 1000,
                  height: int = 650,
                  ball_size: int = 30,
-                 ball_velocity: int = 1,
+                 ball_velocity: int = 4,
                  bar_height: int = 100,
                  bar_width: int = 20,
                  bar_margin: int = 30,
                  bar_velocity: int = 8,
                  on_score_changed: Callable[[
-                     int, int, Any], None] | None = None,
+                     int, int, Any], Awaitable[None]] | None = None,
                  on_ball_pos_changed: Callable[[
-                     Tuple[float, float], Any], None] | None = None,
+                     Tuple[float, float],  Any], Awaitable[None]] | None = None,
                  on_left_block_pos_changed: Callable[[
-                     int, Any], None] | None = None,
+                     int, Any], Awaitable[None]] | None = None,
                  on_right_block_pos_changed: Callable[[
-                     int, Any], None] | None = None,
+                     int, Any], Awaitable[None]] | None = None,
                  args: Any = None):
 
         self.width = width
@@ -50,17 +50,17 @@ class Game:
             bar_margin,
             on_pos_changed=on_right_block_pos_changed)
 
-    def increase_score_p1(self) -> None:
+    async def increase_score_p1(self) -> None:
         self.__score_p1 += 1
-        self.__invoke_on_score_changed()
+        await self.__invoke_on_score_changed()
 
-    def increase_score_p2(self) -> None:
+    async def increase_score_p2(self) -> None:
         self.__score_p2 += 1
-        self.__invoke_on_score_changed()
+        await self.__invoke_on_score_changed()
 
-    def __invoke_on_score_changed(self) -> None:
+    async def __invoke_on_score_changed(self) -> None:
         if self.on_score_changed is not None:
-            self.on_score_changed(self.__score_p1, self.__score_p2, self.args)
+            await self.on_score_changed(self.__score_p1, self.__score_p2, self.args)
 
 
 class Ball:
@@ -83,16 +83,16 @@ class Ball:
         self.direction[1] = np.random.uniform(-1, 1)
         self.direction /= np.linalg.norm(self.direction)
 
-    def move(self) -> None:
+    async def move(self) -> None:
         '''
         Moves ball in self.direction with self.velocity
         and handles all collisions.
         '''
         self.pos += self.velocity * self.direction
         self.__invoke_on_pos_changed()
-        self.handle_collision()
+        await self.handle_collision()
 
-    def handle_collision(self) -> None:
+    async def handle_collision(self) -> None:
         # wall collision
         if self.pos[1] <= 0 or self.pos[1] + self.size >= self.game.height:
             self.direction[1] *= -1
@@ -100,10 +100,10 @@ class Ball:
         # scores
         elif self.pos[0] + self.size >= self.game.width:
             # left scored
-            self.game.increase_score_p1()
+            await self.game.increase_score_p1()
         elif self.pos[0] <= 0:
             # right scored
-            self.game.increase_score_p2()
+            await self.game.increase_score_p2()
         # left bar collision
         elif (self.pos[0] <= self.game.left_block.margin + self.game.left_block.width
               and self.pos[0] >= self.game.left_block.margin
@@ -135,7 +135,7 @@ class Block:
                  width: int,
                  velocity: int,
                  margin: int,
-                 on_pos_changed: Callable[[int, Any], None] | None = None):
+                 on_pos_changed: Callable[[int, Any], Awaitable[None]] | None = None):
         self.game = game
         self.height = height
         self.width = width
@@ -148,7 +148,7 @@ class Block:
     def set_init_state(self) -> None:
         self.posY = (self.game.height - self.height) / 2
 
-    def move(self, direction: int) -> None:
+    async def move(self, direction: int) -> None:
         '''
         Moves block in given direction.
 
@@ -163,8 +163,8 @@ class Block:
             newPosY -= self.velocity
         if newPosY + self.height <= self.game.height and newPosY >= 0:
             self.posY = newPosY
-            self.__invoke_on_pos_changed()
+            await self.__invoke_on_pos_changed()
 
-    def __invoke_on_pos_changed(self):
+    async def __invoke_on_pos_changed(self):
         if self.on_pos_changed is not None:
-            self.on_pos_changed(int(self.posY), self.game.args)
+            await self.on_pos_changed(int(self.posY), self.game.args)

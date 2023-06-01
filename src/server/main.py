@@ -2,9 +2,10 @@ import json
 import time
 from game import Game
 from typing import Dict, List, Tuple
-from websockets.sync.server import serve, ServerConnection
+from websockets.server import serve, WebSocketServer 
 from websockets.exceptions import WebSocketException
 from websocket_utils import *
+import asyncio
 
 
 '''
@@ -23,12 +24,12 @@ logging.basicConfig(
 # deploy client to github
 #
 
-clients: Dict[str, ServerConnection] = dict()
+clients: Dict[str, WebSocketServerProtocol] = dict()
 invitations: Dict[str, List[str]] = dict()
 games: Dict[str, Tuple[Game, Tuple[str, str]]]
 
 
-def removeInvitations(player: str):
+async def removeInvitations(player: str):
     '''
     Removes all invitations of a player.
     '''
@@ -39,58 +40,58 @@ def removeInvitations(player: str):
             val.remove(player)
 
 
-def broadcastPlayerList():
+async def broadcastPlayerList():
     '''
     Sends a list of all connected players to all available clients. 
     '''
     for nickname, ws in clients.items():
-        sendPlayerList(nickname, ws)
+        await sendPlayerList(nickname, ws)
 
 
-def sendPlayerList(player: str, sc: ServerConnection):
+async def sendPlayerList(player: str, ws: WebSocketServerProtocol):
     '''
     Sends a list of all connected player to a client.
     '''
     keys = [key for key in clients]
     keys.remove(player)
-    sc.send(json.dumps({'type': 'playerList', 'data': keys}))
+    await ws.send(json.dumps({'type': 'playerList', 'data': keys}))
 
 
-def sendInvitation(targetPlayer: str, srcPlayer: str):
+async def sendInvitation(targetPlayer: str, srcPlayer: str):
     '''
     Sends an invitation to player.
     '''
-    sc = clients.get(targetPlayer)
-    if sc is not None:
-        sc.send(json.dumps({'type': 'invitation', 'message': srcPlayer}))
+    ws = clients.get(targetPlayer)
+    if ws is not None:
+        await ws.send(json.dumps({'type': 'invitation', 'message': srcPlayer}))
 
 
-def sendInvitationAccepted(srcPlayer: str):
+async def sendInvitationAccepted(srcPlayer: str):
     '''
     Sends an invitation confirmation.
     '''
-    sc = clients.get(srcPlayer)
-    if sc is not None:
-        sc.send(json.dumps({'type': 'invitationAccepted', 'message': srcPlayer}))
+    ws = clients.get(srcPlayer)
+    if ws is not None:
+        await ws.send(json.dumps({'type': 'invitationAccepted', 'message': srcPlayer}))
 
 
-def onScoreChanged(score1: int, score2: int, args: Tuple[ServerConnection, ServerConnection]):
-    sendScore(score1, score2, list(args))
+async def onScoreChanged(score1: int, score2: int, args: Tuple[WebSocketServerProtocol, WebSocketServerProtocol]):
+    await sendScore(score1, score2, list(args))
 
 
-def onBallPosChanged(pos: Tuple[float, float], args: Tuple[ServerConnection, ServerConnection]):
-    sendBallPos(pos, list(args))
+async def onBallPosChanged(pos: Tuple[float, float], args: Tuple[WebSocketServerProtocol, WebSocketServerProtocol]):
+    await sendBallPos(pos, list(args))
 
 
-def onLeftBlockPosChanged(posY: int, args: Tuple[ServerConnection, ServerConnection]):
-    sendLeftBlockPos(posY, list(args))
+async def onLeftBlockPosChanged(posY: int, args: Tuple[WebSocketServerProtocol, WebSocketServerProtocol]):
+    await sendLeftBlockPos(posY, list(args))
 
 
-def onRightBlockPosChanged(posY: int, args: Tuple[ServerConnection, ServerConnection]):
-    sendRightBlockPos(posY, list(args))
+async def onRightBlockPosChanged(posY: int, args: Tuple[WebSocketServerProtocol, WebSocketServerProtocol]):
+    await sendRightBlockPos(posY, list(args))
 
 
-def play(player1: str, player2: str):
+async def play(player1: str, player2: str):
     wsP1 = clients[player1]
     wsP2 = clients[player2]
     game = Game(
@@ -104,23 +105,23 @@ def play(player1: str, player2: str):
     # remove players from matchmaking list
     del clients[player1]
     del clients[player2]
-    broadcastPlayerList()
+    await broadcastPlayerList()
 
-    sendGameInitialization(game, [wsP1, wsP2])
+    await sendGameInitialization(game, [wsP1, wsP2])
 
-    def gameLoop():
+    async def gameLoop():
         starttime = time.time()
         interval = 0.002
         while True:
-            game.ball.move()
+            await game.ball.move()
             time.sleep(interval - ((time.time() - starttime) % interval))
     
-    gameLoop()
+    await gameLoop()
 
 
-def matchmaking(srcPlayer: str, sc: ServerConnection):
+async def matchmaking(srcPlayer: str, ws: WebSocketServerProtocol):
     # listen for incoming messages
-    for message in sc:
+    async for message in ws:
         try:
             # load message attributes
             event = json.loads(message)
@@ -136,30 +137,30 @@ def matchmaking(srcPlayer: str, sc: ServerConnection):
                         invitations[srcPlayer].append(targetPlayer)
                 else:
                     invitations[srcPlayer] = [targetPlayer]
-                sendInvitation(targetPlayer, srcPlayer)
+                await sendInvitation(targetPlayer, srcPlayer)
 
             elif type == 'acceptInvitation':
                 targetPlayer = message
                 if srcPlayer in invitations.get(targetPlayer, []):
                     del invitations[targetPlayer]
-                    sendInvitationAccepted(targetPlayer)
+                    await sendInvitationAccepted(targetPlayer)
                     # start game
-                    play(srcPlayer, targetPlayer)
+                    await play(srcPlayer, targetPlayer)
 
             elif type == 'rejectInvitation':
                 if invitations.get(message) is not None:
                     del invitations[message]
 
             else:
-                sc.send(json.dumps({'type': 'error', 'message': f'Wrong type "{type}".'}))
+                await ws.send(json.dumps({'type': 'error', 'message': f'Wrong type "{type}".'}))
 
         except WebSocketException:
             return
 
 
-def handler(sc: ServerConnection):
+async def handler(ws: WebSocketServerProtocol):
     # wait for joining message
-    message = sc.recv(0.1)
+    message = await asyncio.wait_for(ws.recv(), 0.1)
     event = json.loads(message)
 
     # load message attributes
@@ -172,23 +173,23 @@ def handler(sc: ServerConnection):
     # else send error message
     if not clients.get(nickname):
         # join matchmaking
-        clients[nickname] = sc 
-        sc.send(json.dumps({'type': 'joined'}))
-        broadcastPlayerList()
+        clients[nickname] = ws
+        await ws.send(json.dumps({'type': 'joined'}))
+        await broadcastPlayerList()
         try:
-            matchmaking(nickname, sc)
+            await matchmaking(nickname, ws)
 
         finally:
             if clients.get(nickname) is not None:
                 del clients[nickname]
-            removeInvitations(nickname)
-            broadcastPlayerList()
+            await removeInvitations(nickname)
+            await broadcastPlayerList()
     else:
-        sc.send(json.dumps({'type': 'joinError', 'message': 'Nickname already exists!'}))
+        await ws.send(json.dumps({'type': 'joinError', 'message': 'Nickname already exists!'}))
 
-def main():
-    with serve(handler, '', 5000) as server:
-        server.serve_forever()
+async def main():
+    async with serve(handler, '', 5000):
+        await asyncio.Future()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
