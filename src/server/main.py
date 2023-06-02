@@ -1,11 +1,10 @@
 import json
-import time
+import time, sched
 from game import Game
 from typing import Dict, List, Tuple
 from websockets.sync.server import serve, ServerConnection
 from websockets.exceptions import WebSocketException
 from websocket_utils import *
-
 
 '''
 
@@ -108,14 +107,13 @@ def play(player1: str, player2: str):
 
     sendGameInitialization(game, [wsP1, wsP2])
 
-    def gameLoop():
-        starttime = time.time()
-        interval = 0.002
-        while True:
-            game.ball.move()
-            time.sleep(interval - ((time.time() - starttime) % interval))
+    def gameLoop(scheduler: sched.scheduler):
+        game.ball.move()
+        scheduler.enter(0.01, 1, gameLoop, (schedu,))
     
-    gameLoop()
+    schedu = sched.scheduler(time.time, time.sleep)
+    schedu.enter(0.01, 1, gameLoop, (schedu,))
+    schedu.run()
 
 
 def matchmaking(srcPlayer: str, sc: ServerConnection):

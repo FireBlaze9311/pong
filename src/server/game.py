@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 from typing import Callable, Any, Tuple
 
@@ -7,7 +8,7 @@ class Game:
                  width: int = 1000,
                  height: int = 650,
                  ball_size: int = 30,
-                 ball_velocity: int = 1,
+                 ball_velocity: int = 5,
                  bar_height: int = 100,
                  bar_width: int = 20,
                  bar_margin: int = 30,
