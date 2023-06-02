@@ -1,10 +1,8 @@
 import { IEvent, Page } from "../types";
 import load from "../navigation";
 import PlayerList from "./playerList";
-import WebSocketGameController from "../webSocketGameController";
 
 export default class LoginPage implements Page {
-    wsg: WebSocketGameController = new WebSocketGameController() 
     nickname: string | null
 
     onLoaded(): void {
@@ -12,8 +10,8 @@ export default class LoginPage implements Page {
         (document.getElementById('nickname') as HTMLInputElement).value = "testPlayer1";
         (document.getElementById('btnJoin')).onclick = this.connect.bind(this)
 
-        this.wsg.register('joined', this.joined.bind(this))
-        this.wsg.register('joinError', this.joinError.bind(this))
+        //this.wsg.register('joined', this.joined.bind(this))
+        //this.wsg.register('joinError', this.joinError.bind(this))
     }
 
     render(): string {
@@ -31,9 +29,9 @@ export default class LoginPage implements Page {
         let ip: string | null = (document.getElementById('ip') as HTMLInputElement).value
         this.nickname = (document.getElementById('nickname') as HTMLInputElement).value
 
-        this.wsg.connect(ip, this.nickname)
-        this.wsg.onError = this.onConnectingError
-        this.wsg.onConnectionClose = this.onConnectionClosed.bind(this)
+        //this.wsg.connect(ip, this.nickname)
+        //this.wsg.onError = this.onConnectingError
+        //this.wsg.onConnectionClose = this.onConnectionClosed.bind(this)
     }
 
     joinError(e: IEvent): void {
@@ -41,7 +39,7 @@ export default class LoginPage implements Page {
     }
 
     joined(e: IEvent): void {
-        load(new PlayerList(this.wsg))
+        //load(new PlayerList(this.wsg))
     }
 
     onConnectionClosed(e: Event): void {
