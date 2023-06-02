@@ -1,4 +1,4 @@
-import { GameConfigurationData } from "./types";
+import { GameConfigurationData } from "./src/types";
 
 export default class Game {
     private readonly BASELINE_MARGIN = 10
