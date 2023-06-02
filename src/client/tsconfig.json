@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
-    "module": "AMD",
-    "target": "ES6",
-    "outFile": "./build/index.js",
-    "removeComments": true
+    "outDir": "./dist/",
+    "noImplicitAny": true,
+    "module": "es6",
+    "target": "es5",
+    "jsx": "react",
+    "allowJs": true,
+    "moduleResolution": "node"
   }
 }
