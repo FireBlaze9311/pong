@@ -1,0 +1,14 @@
+{
+    "name": "client",
+    "scripts": {
+        "build": "webpack --config webpack.config.js"
+    },
+    "devDependencies": {
+        "ts-loader": "^9.4.3",
+        "typescript": "^5.1.3",
+        "webpack": "^5.85.0"
+    },
+    "dependencies": {
+        "socket.io-client": "^4.6.2"
+    }
+}
