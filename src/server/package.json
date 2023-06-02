@@ -1,11 +1,14 @@
 {
     "name": "pong-server",
     "version": "1.0.0",
-    "main": "build/server.js",
+    "main": "dist/server.js",
     "scripts": {
         "build": "tsc"
     },
     "dependencies": {
         "socket.io": "^4.6.2"
+    },
+    "devDependencies": {
+        "typescript": "^5.1.3"
     }
 }
