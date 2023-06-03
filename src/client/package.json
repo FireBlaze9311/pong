@@ -2,7 +2,7 @@
     "name": "client",
     "scripts": {
         "build": "webpack --config webpack.config.js",
-        "exec": "npm run build && npx http-server ."
+        "start": "npx http-server ."
     },
     "devDependencies": {
         "http-server": "^14.1.1",
