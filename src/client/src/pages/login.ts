@@ -1,17 +1,17 @@
-import { IEvent, Page } from "../types";
+import { Page } from "../types";
+import { io, Socket } from "socket.io-client";
 import load from "../navigation";
 import PlayerList from "./playerList";
+import { AuthData, ClientToServerEvents, ServerToClientEvents, SocketData, User } from "../../../types"
 
 export default class LoginPage implements Page {
     nickname: string | null
+    socket: Socket<ServerToClientEvents, ClientToServerEvents>
 
     onLoaded(): void {
         (document.getElementById('ip') as HTMLInputElement).value = window.location.hostname;
         (document.getElementById('nickname') as HTMLInputElement).value = "testPlayer1";
         (document.getElementById('btnJoin')).onclick = this.connect.bind(this)
-
-        //this.wsg.register('joined', this.joined.bind(this))
-        //this.wsg.register('joinError', this.joinError.bind(this))
     }
 
     render(): string {
@@ -29,25 +29,31 @@ export default class LoginPage implements Page {
         let ip: string | null = (document.getElementById('ip') as HTMLInputElement).value
         this.nickname = (document.getElementById('nickname') as HTMLInputElement).value
 
-        //this.wsg.connect(ip, this.nickname)
-        //this.wsg.onError = this.onConnectingError
-        //this.wsg.onConnectionClose = this.onConnectionClosed.bind(this)
+        this.socket = io(`http://${ip}:5000`);
+        this.socket.on('connect_error', this.onConnectError.bind(this))
+        this.socket.on('users', this.onUserListReceived.bind(this))
+
+        let auth: AuthData = {'nickname': this.nickname}
+        this.socket.auth = auth 
+
+        // for debugging
+        this.socket.onAny((event, ...args) => {
+            console.log(event, args);
+        });
+
+        this.socket.connect()
     }
 
-    joinError(e: IEvent): void {
-        alert(e.message)
+    onUserListReceived(users: User[]){
+        load(new PlayerList(users, this.socket))
     }
 
-    joined(e: IEvent): void {
-        //load(new PlayerList(this.wsg))
+    onConnectError(err: Error){
+        // todo: display error
+        console.log(err.name, err.message)
     }
 
-    onConnectionClosed(e: Event): void {
-        load(this)
-        alert('Connection closed.')
-    }
-
-    onConnectingError(e: Event): void {
-        alert('Error connecting.')
+    destroy(): void {
+        this.socket.off('connect_error')
     }
 } 
