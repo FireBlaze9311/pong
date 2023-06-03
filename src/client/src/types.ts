@@ -1,6 +1,7 @@
 export interface Page {
     render(): string,
-    onLoaded(): void
+    onLoaded(): void,
+    destroy?(): void
 }
 
 export interface IEvent {
