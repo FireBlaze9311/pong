@@ -6,12 +6,6 @@ import { spawn } from 'child_process';
 
 const httpServer = createServer();
 
-function printAllInvitations() {
-  for (let [id, socket] of io.of('/').sockets) {
-    console.log(id, socket.data.invitations)
-  }
-}
-
 function enterGameLoop(s1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>, s2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
 
   const gameLoopProcess = spawn('node', ['./dist/server/gameLoop.js'], {
