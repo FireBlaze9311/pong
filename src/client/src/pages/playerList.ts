@@ -1,6 +1,6 @@
 import Game from "./game";
 import load from "../navigation";
-import { IEvent, Page } from "../types";
+import { Page } from "../types";
 import { Socket } from "socket.io-client";
 import { ClientToServerEvents, ServerToClientEvents, User } from "../../../types";
 
@@ -12,10 +12,6 @@ export default class PlayerListPage implements Page {
     constructor(users: User[], socket: Socket<ServerToClientEvents, ClientToServerEvents>) {
         this.socket = socket
         this.users = users
-        /*
-        this.ws.register('invitation', this.onInvited.bind(this))
-        this.ws.register('invitationAccepted', this.onInvitationAccepted.bind(this))
-        */
     }
 
     onLoaded(): void {
@@ -24,6 +20,8 @@ export default class PlayerListPage implements Page {
 
         this.socket.on('userConnected', this.onUserConnected.bind(this))
         this.socket.on('userDisconnected', this.onUserDisconnected.bind(this))
+        this.socket.on('invitation', this.onInvited.bind(this))
+        this.socket.on('invitationAccepted', this.onInvitationAccepted.bind(this))
     }
 
     render(): string {
@@ -46,14 +44,9 @@ export default class PlayerListPage implements Page {
         })
     }
 
-    onPlayerClick(nickname: string): void {
-        // invite player
-        const event: IEvent = {
-            type: "challenge",
-            message: nickname
-        }
-        //this.socket.emit()
-        //this.ws.send(event)
+    onPlayerClick(id: string): void {
+        // todo: visualize invitation sent
+        this.socket.emit('inviteUser', id)
     }
 
     onUserConnected(user: User): void {
@@ -67,39 +60,30 @@ export default class PlayerListPage implements Page {
         this.renderUsers()
     }
 
-    onInvited(e: IEvent): void {
-        const player = e.message
-        if (confirm(`Accept invitation from ${player}?`)) {
-            // send confirmation 
-            const event: IEvent = {
-                type: "acceptInvitation",
-                message: player
-            }
-            //this.ws.send(event)
-            //this.loadGame()
+    onInvited(user: User): void {
+        // visualize
+        if (confirm(`Accept invitation from ${user.nickname}?`)) {
+            this.socket.emit('acceptInvitation', user.id)
+            this.loadGame()
         }
         else {
-            // send rejection 
-            const event: IEvent = {
-                type: "rejectInvitation",
-                message: player
-            }
-            //this.ws.send(event)
+            this.socket.emit('rejectInvitation', user.id)
         }
     }
 
-    onInvitationAccepted(e: IEvent): void {
+    onInvitationAccepted(user: User): void {
+        // todo: visualize
         this.loadGame()
     }
 
     loadGame(): void {
-        //load(new Game(this.ws))
+        load(new Game(this.socket))
     }
 
-
-
-    
-
-
-
+    destroy(): void {
+        this.socket.off('userConnected')
+        this.socket.off('userDisconnected')
+        this.socket.off('invitation')
+        this.socket.off('invitationAccepted')
+    }
 }

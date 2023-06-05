@@ -1,4 +1,4 @@
-import { GameConfigurationData } from "./src/types";
+import { GameInitialization } from "../types";
 
 export default class Game {
     private readonly BASELINE_MARGIN = 10
@@ -7,7 +7,7 @@ export default class Game {
     private readonly FOREGROUND = '#ffffff'
 
     readonly ctx: CanvasRenderingContext2D
-    readonly config: GameConfigurationData
+    readonly initData: GameInitialization 
 
     readonly height: number
     readonly width: number
@@ -30,14 +30,14 @@ export default class Game {
     ballPosX: number
     ballPosY: number
 
-    constructor(config: GameConfigurationData, ctx: CanvasRenderingContext2D) {
-        this.config = config
+    constructor(init: GameInitialization, ctx: CanvasRenderingContext2D) {
+        this.initData = init 
         this.ctx = ctx
-        this.height = config.height
-        this.width = config.width
-        this.leftBlockY = config.leftBlock.posY
-        this.rightBlockY = config.rightBlock.posY
-        this.rightBlockX = this.width - config.rightBlock.margin - config.rightBlock.width
+        this.height = init.height
+        this.width = init.width
+        this.leftBlockY = init.leftBlock.posY
+        this.rightBlockY = init.rightBlock.posY
+        this.rightBlockX = this.width - init.rightBlock.margin - init.rightBlock.width
 
         this.scoreSize = this.height / 7
         this.scoreLeftX = this.width / 4 - this.scoreSize / 3
@@ -68,7 +68,7 @@ export default class Game {
     }
 
     renderBall(): void {
-        this.ctx.fillRect(this.ballPosX, this.ballPosY, this.config.ball.size, this.config.ball.size)
+        this.ctx.fillRect(this.ballPosX, this.ballPosY, this.initData.ball.size, this.initData.ball.size)
     }
 
     renderBaseline(): void {
@@ -83,10 +83,10 @@ export default class Game {
     }
 
     renderLeftBlock(): void {
-        this.ctx.fillRect(this.config.leftBlock.margin, this.leftBlockY, this.config.leftBlock.width, this.config.leftBlock.height)
+        this.ctx.fillRect(this.initData.leftBlock.margin, this.leftBlockY, this.initData.leftBlock.width, this.initData.leftBlock.height)
     }
 
     renderRightBlock(): void {
-        this.ctx.fillRect(this.rightBlockX, this.rightBlockY, this.config.rightBlock.width, this.config.rightBlock.height)
+        this.ctx.fillRect(this.rightBlockX, this.rightBlockY, this.initData.rightBlock.width, this.initData.rightBlock.height)
     }
 }
