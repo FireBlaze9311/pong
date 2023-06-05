@@ -36,11 +36,6 @@ export default class LoginPage implements Page {
         let auth: AuthData = {'nickname': this.nickname}
         this.socket.auth = auth 
 
-        // for debugging
-        this.socket.onAny((event, ...args) => {
-            console.log(event, args);
-        });
-
         this.socket.connect()
     }
 

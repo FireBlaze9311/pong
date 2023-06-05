@@ -1,8 +1,9 @@
 {
     "name": "client",
     "scripts": {
-        "build": "webpack --config webpack.config.js",
-        "start": "npx http-server ."
+        "build": "webpack --mode=development --config webpack.config.js",
+        "start": "npx http-server .",
+        "prod": "webpack --mode=production --config webpack.config.js"
     },
     "devDependencies": {
         "http-server": "^14.1.1",
