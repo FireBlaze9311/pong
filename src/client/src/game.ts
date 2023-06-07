@@ -1,4 +1,4 @@
-import { GameInitialization } from "../types";
+import { GameInitialization } from "../../types";
 
 export default class Game {
     private readonly BASELINE_MARGIN = 10
