@@ -1,8 +1,8 @@
 import { Socket } from "socket.io-client";
 import { ClientToServerEvents, GameInitialization, Key, ServerToClientEvents, Vector } from "../../../types";
-import Game from "../../game";
 import { Page } from "../types";
 import { createCanvas } from "../utils";
+import Game from "../game";
 
 export default class GamePage implements Page {
     canvas: HTMLCanvasElement
