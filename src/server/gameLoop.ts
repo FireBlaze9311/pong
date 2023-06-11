@@ -78,4 +78,4 @@ setInterval(() => {
     else if (keyBuffer.get('right').arrowDown) {
         game.rightBlock.move(BlockDirection.DOWN)
     }
-}, 8)
+}, 15)
