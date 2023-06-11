@@ -1,60 +1,108 @@
 import { Server, Socket } from 'socket.io';
 import { createServer } from "http";
-import { AuthData, ClientToServerEvents, GameInitialization, InterServerEvents, ServerToClientEvents, SocketData } from "../types"
+import { AuthData, ClientToServerEvents, GameInitialization, IKey, InterServerEvents, Key, ServerToClientEvents, SocketData } from "../types"
 import * as utils from './server_utils';
-import { spawn } from 'child_process';
+import Game, { BlockDirection, GameConfiguration } from './game';
 
 const httpServer = createServer();
 
 function enterGameLoop(s1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>, s2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
 
-  const gameLoopProcess = spawn('node', ['./dist/server/gameLoop.js'], {
-    stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-  })
+  const gameConfig: GameConfiguration = {
+    width: 1000,
+    height: 650,
+    ball_size: 30,
+    ball_velocity: 4,
+    block_height: 100,
+    block_width: 20,
+    block_margin: 30,
+    block_velocity: 8
+  }
 
-  s1.data.gameLoopProcess = gameLoopProcess
-  s2.data.gameLoopProcess = gameLoopProcess
+  const game = new Game(gameConfig)
 
-  let id: string
-
-  gameLoopProcess.on('message', message => {
-    const data = JSON.parse(message.toString())
-    switch (data.type) {
-      case 'ballPos':
-        io.to(id).emit('ballPos', data.pos)
-        break
-      case 'leftBlockPos':
-        io.to(id).emit('leftBlockPos', data.posY)
-        break
-      case 'rightBlockPos':
-        io.to(id).emit('rightBlockPos', data.posY)
-        break
-      case 'score':
-        io.to(id).emit('score', data.s1, data.s2)
-        break
-      case 'gameInit':
-        id = data.id
-        s1.join(id)
-        s2.join(id)
-        io.to(id).emit('gameInit', data.data as GameInitialization)
-        break
+  const gameInit: GameInitialization = {
+    width: game.width,
+    height: game.height,
+    ball: {
+      size: game.ball.size,
+      pos: [game.ball.pos.x, game.ball.pos.y],
+    },
+    leftBlock: {
+      height: game.leftBlock.height,
+      width: game.leftBlock.width,
+      margin: game.leftBlock.margin,
+      posY: game.leftBlock.posY
+    },
+    rightBlock: {
+      height: game.rightBlock.height,
+      width: game.rightBlock.width,
+      margin: game.rightBlock.margin,
+      posY: game.rightBlock.posY
     }
-  })
+  }
+
+  s1.join(game.id)
+  s2.join(game.id)
+
+  const keyBuffer = [[false, false], [false, false]]
+
+  io.to(game.id).emit('gameInit', gameInit)
+
+  game.onScoreChanged = (s1, s2) => {
+    io.to(game.id).emit('score', s1, s2)
+  }
+  game.ball.onPosChanged = pos => {
+    io.to(game.id).emit('ballPos', pos)
+  }
+  game.leftBlock.onPosChanged = posY => {
+    io.to(game.id).emit('leftBlockPos', posY)
+  }
+  game.rightBlock.onPosChanged = posY => {
+    io.to(game.id).emit('rightBlockPos', posY)
+  }
 
   s1.on('keyDown', k => {
-    gameLoopProcess.send(JSON.stringify({ pos: 'left', type: 'down', key: k }))
-  })
-  s1.on('keyUp', k => {
-    gameLoopProcess.send(JSON.stringify({ pos: 'left', type: 'up', key: k }))
-  })
-  s2.on('keyDown', k => {
-    gameLoopProcess.send(JSON.stringify({ pos: 'right', type: 'down', key: k }))
-  })
-  s2.on('keyUp', k => {
-    gameLoopProcess.send(JSON.stringify({ pos: 'right', type: 'up', key: k }))
+    setKeyBuffer(k, true, 0)
   })
 
-  process.stdin.pipe(gameLoopProcess.stdin);
+  s1.on('keyUp', k => {
+    setKeyBuffer(k, false, 0)
+  })
+
+  s2.on('keyDown', k => {
+    setKeyBuffer(k, true, 1)
+  })
+  s2.on('keyUp', k => {
+    setKeyBuffer(k, false, 1)
+  })
+
+  function setKeyBuffer(k: Key, value: boolean, player: number) {
+    if (k == Key.ArrowDown) {
+      keyBuffer[player][0] = value
+    }
+    else {
+      keyBuffer[player][1] = value
+    }
+  }
+
+  setInterval(() => {
+    game.ball.move()
+    if(keyBuffer[0][0]){
+      game.leftBlock.move(BlockDirection.DOWN)
+    }
+    else if (keyBuffer[0][1]){
+      game.leftBlock.move(BlockDirection.UP)
+    }
+    else if(keyBuffer[1][0]){
+      game.rightBlock.move(BlockDirection.DOWN)
+    }
+    else if(keyBuffer[1][1]){
+      game.rightBlock.move(BlockDirection.UP)
+    }
+
+  }, 8)
+
 }
 
 const io = new Server<

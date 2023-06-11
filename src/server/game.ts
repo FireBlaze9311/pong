@@ -142,8 +142,6 @@ class Ball {
             return
         }
         this.setInitState()
-        this.game.leftBlock.setInitState()
-        this.game.rightBlock.setInitState()
     }
 }
 
