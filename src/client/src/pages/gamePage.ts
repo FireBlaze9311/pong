@@ -9,16 +9,17 @@ export default class GamePage implements Page {
     rootElement: HTMLDivElement
     game: Game
     socket: Socket<ServerToClientEvents, ClientToServerEvents>
+    init?: GameInitialization
 
-    constructor(socket: Socket<ServerToClientEvents, ClientToServerEvents>) {
+    constructor(socket: Socket<ServerToClientEvents, ClientToServerEvents>, init?: GameInitialization) {
         this.socket = socket
-        document.addEventListener('keydown', this.onKeyDown.bind(this))
-        document.addEventListener('keyup', this.onKeyUp.bind(this))
+        this.init = init
     }
 
     render(): string {
         return (
             `
+            <h1>${this.init != null? "Spectator": ""}</h1>
             <div id='rootGame'></div>
             `
         )
@@ -31,6 +32,15 @@ export default class GamePage implements Page {
         this.socket.on('score', this.onScoreChanged.bind(this))
         this.socket.on('leftBlockPos', this.onLeftBlockPosChanged.bind(this))
         this.socket.on('rightBlockPos', this.onRightBlockPosChanged.bind(this))
+
+        if(this.init == null){
+            document.addEventListener('keydown', this.onKeyDown.bind(this))
+            document.addEventListener('keyup', this.onKeyUp.bind(this))
+        }
+        else{
+            // watch mode
+            this.initGame(this.init)
+        }
     }
 
     initGame(init: GameInitialization): void {

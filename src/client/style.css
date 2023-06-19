@@ -1,22 +1,58 @@
-html, body{
+html, body {
     overflow-x: hidden;
     color: white;
     font-family: Arial, Helvetica, sans-serif;
 }
 
-.lstPlayer{
-    border: 1px solid white;
+.lstPlayer {
+    border: 2px solid white;
     padding: 5px;
     font-size: 30px;
     cursor: pointer;
+    border-radius: 5px;
+    margin-top: 5px;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-body{
+.lstGame {
+    border: 1px solid white;
+    padding: 5px;
+    font-size: 30px;
+}
+
+.playerList{
+    text-align: center;
+    margin-top: 3px;
+}
+
+body {
     background-color: black;
     position: relative;
 }
 
-canvas{
+canvas {
     background-color: black;
     border: 5px solid white;
+}
+
+h1 {
+    font-size: 40px;
+}
+
+#invitationDia{
+    z-index: 100;
+    margin-top: 10px;
+    border-radius: 5px;
+    backdrop-filter: blur(5px);
+    background: transparent;
+    color: white
+}
+
+.btnDia{
+    background: black;
+    color: white;
+    border: 1px solid white;
+    border-radius: 1px;
 }

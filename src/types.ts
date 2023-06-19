@@ -1,9 +1,9 @@
-import { ChildProcess } from "child_process"
-
 export interface ServerToClientEvents {
   users: (users: User[]) => void
   userConnected: (user: User) => void
   userDisconnected: (user: User) => void
+  gameCreated: (game: GameWatchingData) => void
+  gameEnded: (id: string) => void
   invitation: (srcUser: User) => void
   error: (message: string) => void
   invitationAccepted: (srcUser: User) => void
@@ -12,6 +12,8 @@ export interface ServerToClientEvents {
   ballPos: (ballPos: Vector) => void
   leftBlockPos: (posY: number) => void
   rightBlockPos: (posY: number) => void
+  gameList: (games: GameWatchingData[]) => void
+  blockPos: (pos: BlockPosition) => void
 }
 
 export interface ClientToServerEvents {
@@ -20,6 +22,8 @@ export interface ClientToServerEvents {
   rejectInvitation: (userID: string) => void
   keyDown: (key: Key) => void
   keyUp: (key: Key) => void
+  watchGame: (id: string) => void
+  unsubGame: (id: string) => void
 }
 
 export interface InterServerEvents {
@@ -29,7 +33,7 @@ export interface InterServerEvents {
 export interface SocketData {
   nickname: string
   invitations: string[]
-  gameLoopProcess: ChildProcess
+  gameId: string
 }
 
 export interface AuthData {
@@ -68,11 +72,15 @@ export interface GameInitialization {
   }
 }
 
-export interface IKey{
-  arrowUp: boolean, 
-  arrowDown: boolean
-}
-
 export enum Key{
   ArrowUp, ArrowDown
+}
+
+export enum BlockPosition{
+  Left, Right
+}
+
+export interface GameWatchingData{
+  init: GameInitialization,
+  id: string
 }

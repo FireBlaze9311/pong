@@ -1,8 +1,8 @@
 import { Page } from "../types";
 import { io, Socket } from "socket.io-client";
 import load from "../navigation";
-import PlayerList from "./playerList";
-import { AuthData, ClientToServerEvents, ServerToClientEvents, SocketData, User } from "../../../types"
+import PlayerList from "./playerListPage";
+import { AuthData, ClientToServerEvents, ServerToClientEvents, User } from "../../../types"
 
 export default class LoginPage implements Page {
     nickname: string | null

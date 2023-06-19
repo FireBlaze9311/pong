@@ -1,10 +1,12 @@
 import { Server, Socket } from 'socket.io';
 import { createServer } from "http";
-import { AuthData, ClientToServerEvents, GameInitialization, IKey, InterServerEvents, Key, ServerToClientEvents, SocketData } from "../types"
+import { AuthData, BlockPosition, ClientToServerEvents, GameInitialization, GameWatchingData, InterServerEvents, Key, ServerToClientEvents, SocketData } from "../types"
 import * as utils from './server_utils';
 import Game, { BlockDirection, GameConfiguration } from './game';
 
 const httpServer = createServer();
+
+const games: GameWatchingData[] = []
 
 function enterGameLoop(s1: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>, s2: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
 
@@ -42,8 +44,17 @@ function enterGameLoop(s1: Socket<ClientToServerEvents, ServerToClientEvents, In
     }
   }
 
+  s1.data.gameId = game.id
+  s2.data.gameId = game.id
   s1.join(game.id)
   s2.join(game.id)
+
+  s1.emit('blockPos', BlockPosition.Left)
+  s2.emit('blockPos', BlockPosition.Right)
+
+  const data = { init: gameInit, id: game.id }
+  games.push(data)
+  s1.broadcast.emit('gameCreated', data)
 
   const keyBuffer = [[false, false], [false, false]]
 
@@ -88,21 +99,20 @@ function enterGameLoop(s1: Socket<ClientToServerEvents, ServerToClientEvents, In
 
   setInterval(() => {
     game.ball.move()
-    if(keyBuffer[0][0]){
+    if (keyBuffer[0][0]) {
       game.leftBlock.move(BlockDirection.DOWN)
     }
-    else if (keyBuffer[0][1]){
+    else if (keyBuffer[0][1]) {
       game.leftBlock.move(BlockDirection.UP)
     }
-    else if(keyBuffer[1][0]){
+    if (keyBuffer[1][0]) {
       game.rightBlock.move(BlockDirection.DOWN)
     }
-    else if(keyBuffer[1][1]){
+    else if (keyBuffer[1][1]) {
       game.rightBlock.move(BlockDirection.UP)
     }
 
   }, 8)
-
 }
 
 const io = new Server<
@@ -129,13 +139,24 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  console.log(`user with id ${socket.id} connected`)
   utils.broadcastConnection(socket)
   socket.on('disconnect', reason => {
     console.log(`user with id ${socket.id} disconnected`)
-    socket.data.gameLoopProcess?.kill()
     utils.broadcastDisconnection(socket)
     utils.removeInvitations(socket.id, io)
+
+    // end game
+    // remove from list
+    const idx = games.findIndex(e => socket.data.gameId == e.id)
+
+    if (idx > -1) {
+      socket.broadcast.emit('gameEnded', games[idx].id)
+      games.splice(idx, 1)
+    }
+
   })
+
   socket.on('inviteUser', id => {
     if (io.of('/').sockets.get(id) !== undefined) {
       if (!socket.data.invitations.includes(id)) {
@@ -144,6 +165,7 @@ io.on('connection', (socket) => {
       }
     }
   })
+
   socket.on('acceptInvitation', id => {
     const target = io.of('/').sockets.get(id)
     if (target !== undefined) {
@@ -159,6 +181,7 @@ io.on('connection', (socket) => {
       }
     }
   })
+
   socket.on('rejectInvitation', id => {
     const target = io.of('/').sockets.get(id)
     // remove from invitations
@@ -169,7 +192,21 @@ io.on('connection', (socket) => {
       }
     }
   })
-  utils.sendUserList(socket, io)
-});
 
-httpServer.listen(5000);
+  socket.on('watchGame', id => {
+    // check if games exists
+    if (games.findIndex(e => e.id == id) > -1) {
+      socket.join(id)
+    }
+  })
+
+  socket.on('unsubGame', id => {
+    socket.leave(id)
+  })
+
+  utils.sendUserList(socket, io)
+  socket.emit('gameList', games)
+
+})
+
+httpServer.listen(5000)

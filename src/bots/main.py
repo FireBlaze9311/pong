@@ -10,16 +10,23 @@ lowerBounds: list
 upperBounds: list
 Qmatrix: np.ndarray
 bins: list
-blockY: int
+
+blockPos: int = 0
+leftBlockY: int = 0
+rightBlockY: int = 0
+
 
 prevPos: np.ndarray = [0, 0]
 prevKey: int = 0
 
-alpha = 0.1
-gamma = 1
+alpha = 0.8
+gamma = 0.99
 epsilon = 0.2
 numberEpisodes = 15000
 
+score: int = 0
+
+reward: int = -100
 
 @sio.on('invitation')
 def on_message(user: dict):
@@ -29,18 +36,17 @@ def on_message(user: dict):
 
 @sio.on('gameInit')
 def on_game_init(init: dict):
-    global Qmatrix, blockY, bins
+    global Qmatrix, bins
 
     width = init.get('width')
     height = init.get('height')
     ball_size = init.get('ball').get('size')
     block_height = init.get('leftBlock').get('height')
-    blockY = init.get('leftBlock').get('posY')
 
     # discretization process for observation space because it is continuous
     # subdevide in bins
     # ball position X, ball position Y, direction X, direction Y, block position Y
-    numberOfBins = (30, 30, 30, 30, 30)
+    numberOfBins = (40, 40, 15, 15, 15)
 
     lowerBounds = [0, 0, 0, 0, 0]
     upperBounds = [height - ball_size, width -
@@ -63,49 +69,61 @@ prevAction = None
 # one episode should be one round
 # reward has to be proportional to round length
 tick = 0
+rewardEpisode = 0
+
 @sio.on('ballPos')
 def on_ball_position(pos: dict):
     global tick
     # train every 20 steps
-    if tick >= 200:
+    if tick >= 15:
         train(pos)
         tick = 0
     tick += 1
 
+
+count = 0
+
+
 def train(pos: dict):
-    global blockY, epsilon, prevStateIndex, prevAction
+    global epsilon, prevStateIndex, prevAction, count, reward, rewardEpisode
+
+    blockY = rightBlockY
+    if blockY == 0:
+        blockY = leftBlockY
 
     # get direction
     direction = [prevPos[0] - pos.get('x'), prevPos[1] - pos.get('y')]
     norm = np.linalg.norm(direction)
     direction /= norm
 
+    # todo: go for shorter version
     state = (prevPos[0], prevPos[1], direction[0], direction[1], blockY)
 
     # update Q-Table
     if prevStateIndex is not None and prevAction is not None:
         qIndex = prevStateIndex + (prevAction,)
         qMax = np.max(Qmatrix[tuple(returnIndexState(state))])
-        Qmatrix[qIndex] += alpha * (1 + gamma * qMax - Qmatrix[qIndex])
+        Qmatrix[qIndex] += alpha * (reward + gamma * qMax - Qmatrix[qIndex])
+        rewardEpisode += reward
+        reward = 1
 
     prevPos[0] = pos.get('x')
     prevPos[1] = pos.get('y')
 
-    # todo: go for shorter version
-    # state = (prevPos[0], prevPos[1], direction[0], direction[1], blockY)
     stateIndex = returnIndexState(state)
     prevStateIndex = stateIndex
 
     q = Qmatrix[stateIndex]
 
-    indexEpisode = 0
     action = 0
 
     # epsilon decay
-    if indexEpisode > 7000:
+    if count > 10000:
+        print('decay')
         epsilon *= 0.999
 
-    if indexEpisode < 500:
+    if count < 1000:
+        print('random')
         action = np.random.randint(0, 3)
 
     # epsilon-greedy
@@ -114,11 +132,14 @@ def train(pos: dict):
         action = np.random.randint(0, 3)
     else:
         # pull best action
-        action = np.argmax(q)
+        action = int(np.argmax(q))
 
     # perform action
     sendAction(action)
     prevAction = action
+
+    count += 1
+
 
 def sendAction(action: int):
     global prevKey
@@ -129,7 +150,39 @@ def sendAction(action: int):
     sio.emit('keyDown', action)
 
 
-@sio.on('leftBlockPos')
+@sio.on('score')
+def on_score(s1: int, s2: int):
+    print(s1, s2)
+    global score, blockPos, reward, rewardEpisode
+    if blockPos == 0:
+        if s1 > score:
+            print('won game')
+            score = s1
+            return
+    else:
+        if s2 > score:
+            print('won')
+            score = s2
+            return
+    print('lost game')
+    reward = -100
+    print('score:', rewardEpisode)
+    rewardEpisode = 0
+
+
+@sio.on('rightBlockPos')
 def on_right_block_pos_changed(pos: int):
-    global blockY
-    blockY = pos
+    global rightBlockY
+    rightBlockY = pos
+
+
+@sio.on('leftBlockPos')
+def on_left_block_pos_changed(pos: int):
+    global leftBlockY
+    leftBlockY = pos
+
+
+@sio.on('blockPos')
+def on_block_pos(pos: int):
+    global blockPos
+    blockPos = pos
