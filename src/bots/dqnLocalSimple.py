@@ -58,9 +58,9 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer1 = nn.Linear(n_observations, 15)
+        self.layer2 = nn.Linear(15, 6)
+        self.layer3 = nn.Linear(6, n_actions)
     
     def forward(self, x):
         x = F.relu(self.layer1(x))
@@ -140,17 +140,31 @@ def stepNextState():
     simpleAlgo()
     game.ball.move()
 
-
+state = torch.tensor([game.ball.pos[1], game.left_block.posY], dtype=torch.float32, device=device).unsqueeze(0)
 while True:
     pygame.event.get()
 
+    action = select_action(state)
+    perfomActionLeft(action.item())
+    stepNextState()
+
+    reward = abs((game.left_block.posY + game.left_block.height /
+                2) - (game.ball.pos[1] + game.ball.size / 2)) * -1
+
+    rewardT = torch.tensor([reward], device=device)
+
+    next_state = torch.tensor([game.ball.pos[1], game.left_block.posY], dtype=torch.float32, device=device).unsqueeze(0)
+
+        memory.push(state, action, next_state, rewardT)
+
+        state = next_state
+
+        optimize_model()
 
     state = (game.ball.pos[1], game.left_block.posY)
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
 
     action = select_action(state)
-    reward = abs((game.left_block.posY + game.left_block.height /
-                2) - (game.ball.pos[1] + game.ball.size / 2)) * -1
 
     perfomActionLeft(action.item())
     stepNextState()

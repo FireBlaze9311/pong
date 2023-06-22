@@ -23,11 +23,11 @@ reward = 0
 
 BATCH_SIZE = 128
 GAMMA = 0.99
-EPS_START = 0.8
+EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 1000
 TAU = 0.005
-LR = 1e-4
+LR = 2e-4
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
@@ -66,20 +66,20 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.layer1 = nn.Linear(n_observations, 80)
+        self.layer2 = nn.Linear(80, 30)
+        self.layer3 = nn.Linear(30, n_actions)
     
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
 
-policy_net = DQN(2, 3).to(device)
-target_net = DQN(2, 3).to(device)
+policy_net = DQN(2, 2).to(device)
+target_net = DQN(2, 2).to(device)
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+memory = ReplayMemory(12000)
 
 steps_done = 0
 
@@ -92,7 +92,7 @@ def select_action(state):
         with torch.no_grad():
             return policy_net(state).max(1)[1].view(1, 1)
     else:
-        return torch.tensor([[random.randint(0, 2)]], device=device, dtype=torch.long)
+        return torch.tensor([[random.randint(0, 1)]], device=device, dtype=torch.long)
 
 def optimize_model():
     if len(memory) < BATCH_SIZE:
@@ -119,6 +119,8 @@ def optimize_model():
 
     optimizer.zero_grad()
     loss.backward()
+
+    print(loss)
 
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
@@ -148,29 +150,24 @@ def stepNextState():
     simpleAlgo()
     game.ball.move()
 
-
+state = torch.tensor([game.ball.pos[1], game.left_block.posY], dtype=torch.float32, device=device).unsqueeze(0)
 while True:
     pygame.event.get()
 
-
-    state = (game.ball.pos[1], game.left_block.posY)
-    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-
     action = select_action(state)
-
     perfomActionLeft(action.item())
     stepNextState()
 
-    rewardT = torch.tensor([reward], device=device)
-    
-    next_state = (game.ball.pos[1], game.left_block.posY)
-    next_state = torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)
+    if reward != 0:
+        rewardT = torch.tensor([reward], device=device)
 
-    memory.push(state, action, next_state, rewardT)
+        next_state = torch.tensor([game.ball.pos[1], game.left_block.posY], dtype=torch.float32, device=device).unsqueeze(0)
 
-    state = next_state
+        memory.push(state, action, next_state, rewardT)
 
-    optimize_model()
+        state = next_state
+
+        optimize_model()
 
     # Soft update of the target network's weights
     target_net_state_dict = target_net.state_dict()
@@ -179,7 +176,7 @@ while True:
         target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
     target_net.load_state_dict(target_net_state_dict)
 
-    stepNextState()
+    reward = 0
 
     window.fill((0, 0, 0))
     pygame.draw.rect(window, WHITE, (*map(int, game.ball.pos),
